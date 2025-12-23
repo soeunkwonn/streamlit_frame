@@ -3,6 +3,7 @@ from pathlib import Path
 import random
 import uuid 
 import json
+import sqlite3
 from utils import(
     init_db,
     list_pool_ids,
@@ -15,9 +16,9 @@ from utils import(
     SEED,
     THUMB_BOX_H
 )
-import sqlite3
 
-DB_PATH = "assignments.db"
+
+DB_PATH = "./assignments.db"
 LABELS = ["A", "B", "C", "D", "E"]
 RANK_OPTIONS = ["-","1", "2", "3", "4", "5"]
 
@@ -26,19 +27,33 @@ RANK_OPTIONS = ["-","1", "2", "3", "4", "5"]
 if "session_id" not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())
 
-# 데이터 조회
-# 데이터베이스에 연결
-connection = sqlite3.connect("assignments.db")
-cursor = connection.cursor()
-# 데이터 조회
-cursor.execute("SELECT * FROM session_assignments")
-rows = cursor.fetchall()
-# 데이터 출력
-print("할당 세팅:")
-for row in rows:
+# 데이터베이스 초기화
+conn = sqlite3.connect("assignments.db") # 데이터베이스에 연결 
+# conn.execute("DELETE FROM session_assignments;")
+# conn.execute("DELETE FROM claims;")
+
+# 데이터베이스 조회
+cursor = conn.cursor()
+
+# 데이터 조회: 테이블 컬럼 구조 확인
+# cursor.execute("SELECT * FROM session_assignments")
+cursor.execute("PRAGMA table_info(claims);") # claim 테이블 확인
+print("\nclaims schema:")
+for row in cursor.fetchall():
     print(row)
-# 연결 종료
-# connection.close()
+
+cursor.execute("PRAGMA table_info(session_assignments);") # assignments 테이블 확인
+print("\nsession_assignments schema:")
+for row in cursor.fetchall():
+    print(row)
+
+# 데이터 조회: 샘플 5개
+cursor.execute("SELECT * FROM claims LIMIT 5;") # claim 조회
+print("\nclaims sample:", cursor.fetchall())
+
+cursor.execute("SELECT * FROM session_assignments LIMIT 5;") # assignments 조회
+print("session_assignments sample:", cursor.fetchall())
+
 
 
 # 팝업 프리뷰 
@@ -51,7 +66,7 @@ def preview_dialog(real_path):
 def chunk(lst, size):
     return [lst[i:i+size] for i in range(0, len(lst), size)]
  
-st.title("HCI 스마트 액자 실험")
+st.title("HCI 스마트 액자 실험🖼️")
 st.markdown("액자 속 그림을 보고 선호하는 순위를 지정해주세요. 순위는 중복 없이 지정해야 합니다.<br>" 
          "1은 가장 높은 순위(1순위)를 나타내며, 5는 가장 낮은 순위(5순위)를 나타냅니다.",
          unsafe_allow_html=True) 
@@ -158,19 +173,19 @@ st.divider()
 c1, c2, c3 = st.columns([1, 1, 1])
 
 with c1:
-    if st.button("Prev", key="previous", disabled=(idx == 0) or st.session_state.submitted):
+    if st.button("이전", key="previous", disabled=(idx == 0) or st.session_state.submitted):
         st.session_state.set_idx -= 1
         st.rerun()
 
 with c2:
     if st.button(
-        "Next", key="Next",
+        "다음", key="Next",
         disabled=(idx >= num_sets - 1) or (not is_complete) or (not is_unique) or st.session_state.submitted
     ):
         st.session_state.set_idx += 1
         st.rerun()
 with c3:
-    if st.button("Reset to first",key="reset", disabled=st.session_state.submitted):
+    if st.button("처음부터 다시하기",key="reset", disabled=st.session_state.submitted):
         st.session_state.set_idx = 0
         st.rerun()
 
@@ -185,8 +200,9 @@ can_submit = (
         and (not st.session_state.submitted)
     )
 
-print("idx/num_sets:", idx, num_sets)
+print("idx/num_sets:", idx, "/", num_sets)
 print("is_complete:", is_complete, "is_unique:", is_unique)
+print("is_unique:", is_unique)
 print("answers keys:", sorted(st.session_state.answers.keys()))
 print("all_sets_valid:", all_sets_valid(st.session_state.answers, num_sets))
 

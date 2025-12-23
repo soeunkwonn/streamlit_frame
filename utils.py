@@ -175,6 +175,8 @@ def all_sets_valid(answers, num_sets):
             return False
     return True
 
+
+
 # 데이터 저장 및 추출 
 OUTPUT_DIR = Path("./outputs")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
